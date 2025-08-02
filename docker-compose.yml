@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: grocer-ease-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: grocerEase
+      MONGO_INITDB_ROOT_PASSWORD: pinakisir123
+      MONGO_INITDB_DATABASE: grocer_ease_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - grocer-ease-network
+
+  # Python Chatbot Backend
+  chatbot-backend:
+    build:
+      context: ./grocer-ease-chatbot
+      dockerfile: Dockerfile
+    container_name: grocer-ease-chatbot
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URI=mongodb://grocerEase:pinakisir123@mongodb:27017/grocer_ease_db?authSource=admin
+      - DB_NAME=grocer_ease_db
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-AIzaSyD4PRV5vHdCy8kWr9WiQUbZ4I-p0r4sTCc}
+      - GEMINI_MODEL_NAME=gemini-2.0-flash
+      - CLASSIFIER_TYPE=bart
+      - PREFERENCE_MODEL_TYPE=bart
+      - STRUCTURED_PROMPTING_API_KEY=${STRUCTURED_PROMPTING_API_KEY:-AIzaSyD4PRV5vHdCy8kWr9WiQUbZ4I-p0r4sTCc}
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./grocer-ease-chatbot:/app
+      - /app/__pycache__
+    depends_on:
+      - mongodb
+    networks:
+      - grocer-ease-network
+
+  # Roomba Mapping Service
+  roomba-mapping:
+    build:
+      context: ./roomba_mapping/roomba_mapping
+      dockerfile: Dockerfile
+    container_name: grocer-ease-roomba-mapping
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./roomba_mapping/roomba_mapping:/app
+      - roomba_uploads:/app/static/uploads
+      - roomba_outputs:/app/static/outputs
+    networks:
+      - grocer-ease-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./grocer-ease-ui
+      dockerfile: Dockerfile
+    container_name: grocer-ease-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000/api/v1
+      - REACT_APP_ROOMBA_API_URL=http://localhost:8001
+      - REACT_APP_ENV=production
+    depends_on:
+      - chatbot-backend
+      - roomba-mapping
+    networks:
+      - grocer-ease-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: grocer-ease-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - chatbot-backend
+      - roomba-mapping
+    networks:
+      - grocer-ease-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  roomba_uploads:
+    driver: local
+  roomba_outputs:
+    driver: local
+
+networks:
+  grocer-ease-network:
+    driver: bridge 
