@@ -18,10 +18,39 @@ services:
     networks:
       - grocer-ease-network
 
+  # PostgreSQL Database for Search Service
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: grocer-ease-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: grocerease
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - grocer-ease-network
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant
+    container_name: grocer-ease-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - grocer-ease-network
+
   # Python Chatbot Backend
   chatbot-backend:
     build:
-      context: ./grocer-ease-chatbot
+      context: ../grocer-ease-chatbot
       dockerfile: Dockerfile
     container_name: grocer-ease-chatbot
     restart: unless-stopped
@@ -37,47 +66,57 @@ services:
       - STRUCTURED_PROMPTING_API_KEY=${STRUCTURED_PROMPTING_API_KEY:-AIzaSyD4PRV5vHdCy8kWr9WiQUbZ4I-p0r4sTCc}
       - LOG_LEVEL=INFO
     volumes:
-      - ./grocer-ease-chatbot:/app
+      - ../grocer-ease-chatbot:/app
       - /app/__pycache__
     depends_on:
       - mongodb
     networks:
       - grocer-ease-network
 
-  # Roomba Mapping Service
-  roomba-mapping:
+  # Search Service (FAISS + Qdrant)
+  search-service:
     build:
-      context: ./roomba_mapping/roomba_mapping
+      context: ../faissGrocerEase
       dockerfile: Dockerfile
-    container_name: grocer-ease-roomba-mapping
+    container_name: grocer-ease-search
     restart: unless-stopped
     ports:
       - "8001:8000"
     environment:
-      - PYTHONPATH=/app
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=grocerease
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - QDRANT_URL=http://qdrant:6333
     volumes:
-      - ./roomba_mapping/roomba_mapping:/app
-      - roomba_uploads:/app/static/uploads
-      - roomba_outputs:/app/static/outputs
+      - ../faissGrocerEase:/app
+      - ../faissGrocerEase/data:/app/data
+    depends_on:
+      - postgres
+      - qdrant
     networks:
       - grocer-ease-network
 
   # React Frontend
   frontend:
     build:
-      context: ./grocer-ease-ui
+      context: ../grocer-ease-ui
       dockerfile: Dockerfile
     container_name: grocer-ease-frontend
     restart: unless-stopped
     ports:
-      - "8080:3000"
+      - "3000:3000"
     environment:
       - REACT_APP_API_URL=http://localhost:8000/api/v1
-      - REACT_APP_ROOMBA_API_URL=http://localhost:8001
-      - REACT_APP_ENV=production
+      - REACT_APP_SEARCH_API_URL=http://localhost:8001
+      - REACT_APP_ENV=development
+    volumes:
+      - ../grocer-ease-ui:/app
+      - /app/node_modules
     depends_on:
       - chatbot-backend
-      - roomba-mapping
+      - search-service
     networks:
       - grocer-ease-network
 
@@ -95,16 +134,16 @@ services:
     depends_on:
       - frontend
       - chatbot-backend
-      - roomba-mapping
+      - search-service
     networks:
       - grocer-ease-network
 
 volumes:
   mongodb_data:
     driver: local
-  roomba_uploads:
+  postgres_data:
     driver: local
-  roomba_outputs:
+  qdrant_data:
     driver: local
 
 networks:
