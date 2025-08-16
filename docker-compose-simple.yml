@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # React Frontend
+  frontend:
+    build:
+      context: ../grocer-ease-ui
+      dockerfile: Dockerfile
+    container_name: grocer-ease-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_SEARCH_API_URL=http://localhost:8001
+      - REACT_APP_ENV=production
+    networks:
+      - grocer-ease-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: grocer-ease-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx-simple.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+    networks:
+      - grocer-ease-network
+
+networks:
+  grocer-ease-network: 
