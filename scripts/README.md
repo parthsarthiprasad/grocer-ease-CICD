@@ -145,7 +145,7 @@ GrocerEaseRepos/
 ### Docker Issues
 - Ensure Docker and Docker Compose are installed
 - Check if Docker daemon is running
-- Verify port availability (80, 3000, 8000, 8001, 27017)
+- Verify port availability (80, 3001, 8000, 8001, 27017)
 
 ### Service Health Issues
 - Check Docker container logs: `docker-compose logs`
