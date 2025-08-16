@@ -65,7 +65,7 @@ This will:
 - **Features**: Floorplan upload and processing
 
 ### React Frontend
-- **Port**: 3001 (internal), 3001 (external)
+- **Port**: 8080 (internal), 8080 (external)
 - **Container**: grocer-ease-frontend
 - **Features**: Interactive UI, chat interface, store navigation
 
@@ -275,7 +275,7 @@ curl http://localhost/health
 # Check individual services
 curl http://localhost:8000/health  # Chatbot
 curl http://localhost:8001/health  # Roomba
-curl http://localhost:3001         # Frontend
+curl http://localhost:8080         # Frontend
 ```
 
 ## 🔄 Updates and Maintenance

@@ -96,7 +96,7 @@ check_health() {
     fi
     
     # Check Frontend
-    if curl -s http://localhost:3001 > /dev/null; then
+    if curl -s http://localhost:8080 > /dev/null; then
         echo -e "${GREEN}✅ Frontend is healthy${NC}"
     else
         echo -e "${RED}❌ Frontend is not responding${NC}"
@@ -120,7 +120,7 @@ show_urls() {
     echo -e "${GREEN}   Health Check:${NC} http://localhost/health"
     echo ""
     echo -e "${YELLOW}💡 You can also access services directly:${NC}"
-    echo -e "${GREEN}   Frontend:${NC} http://localhost:3001"
+    echo -e "${GREEN}   Frontend:${NC} http://localhost:8080"
     echo -e "${GREEN}   Chatbot Backend:${NC} http://localhost:8000"
     echo -e "${GREEN}   Roomba Mapping:${NC} http://localhost:8001"
 }

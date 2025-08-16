@@ -79,7 +79,7 @@ deploy_on_instance() {
         # Test the application
         echo 'Testing application endpoints...'
         curl -s http://localhost/health || echo 'Health check failed'
-        curl -s http://localhost:3001 | head -n 5 || echo 'Frontend check failed'
+        curl -s http://localhost:8080 | head -n 5 || echo 'Frontend check failed'
     "
     
     echo -e "${GREEN}✅ Deployment completed${NC}"
